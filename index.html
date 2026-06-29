@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>현장별 맞춤 메시지 생성기</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+        body {
+            background-color: #f5f7fa;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+            display: flex;
+            justify-content: center;
+        }
+        .container {
+            max-width: 600px;
+            width: 100%;
+            background: #ffffff;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+        h1 {
+            font-size: 20px;
+            margin-top: 0;
+            margin-bottom: 20px;
+            text-align: center;
+            color: #1e293b;
+            font-weight: 700;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: #475569;
+        }
+        input[type="text"], select, textarea {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            font-size: 14px;
+            background-color: #fff;
+            color: #333;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        input[type="text"]:focus, select:focus, textarea:focus {
+            border-color: #3b82f6;
+        }
+        .dynamic-fields {
+            background: #f8fafc;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px dashed #cbd5e1;
+            margin-bottom: 15px;
+        }
+        .channel-tabs {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 15px;
+            background: #f1f5f9;
+            padding: 4px;
+            border-radius: 8px;
+        }
+        .tab-btn {
+            flex: 1;
+            padding: 8px 0;
+            border: none;
+            background: none;
+            font-size: 13px;
+            font-weight: 600;
+            color: #64748b;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+        .tab-btn.active {
+            background: #fff;
+            color: #1e293b;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .btn-generate {
+            width: 100%;
+            padding: 12px;
+            background-color: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            margin-bottom: 20px;
+        }
+        .btn-generate:hover {
+            background-color: #1d4ed8;
+        }
+        .result-box {
+            position: relative;
+        }
+        textarea.result-area {
+            height: 180px;
+            resize: none;
+            background-color: #f8fafc;
+            font-family: inherit;
+            line-height: 1.5;
+        }
+        .btn-copy {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            padding: 6px 12px;
+            background-color: #475569;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 11px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .btn-copy:hover {
+            background-color: #334155;
+        }
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1e293b;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            display: none;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>📱 현장별 맞춤 메시지 생성기</h1>
+    
+    <div class="form-group">
+        <label for="siteName">현장명</label>
+        <input type="text" id="siteName" placeholder="예: 한강 자이 아파트 리모델링">
+    </div>
+    
+    <div class="form-group">
+        <label for="stepSelect">팔로업 단계</label>
+        <select id="stepSelect" onchange="toggleFields()">
+            <option value="step1">1. 일정 안내 (설치/방문)</option>
+            <option value="step2">2. 발주확정 및 출고/송장 안내</option>
+            <option value="step3">3. 견적서 발송 후 1차 확인 (며칠 뒤)</option>
+            <option value="step4">4. 견적 2차 팔로업 (타사 비교/네고)</option>
+            <option value="step5">5. 공제회 안내 대상 특화 (비용 절감)</option>
+        </select>
+    </div>
+
+    <!-- 상황별로 동적으로 보여줄 추가 입력창들 -->
+    <div class="dynamic-fields" id="dynamicFields">
+        <div id="field-date" class="form-group" style="margin-bottom:0;">
+            <label for="dateInput">방문/출고 일정</label>
+            <input type="text" id="dateInput" placeholder="예: 내일(화) 오전 10시">
+        </div>
+        <div id="field-shipping" class="form-group" style="display:none; margin-bottom:0;">
+            <div class="form-group">
+                <label for="courierInput">택배사 / 화물</label>
+                <input type="text" id="courierInput" placeholder="예: 경동택배">
+            </div>
+            <div class="form-group" style="margin-bottom:0;">
+                <label for="invoiceInput">송장번호 / 기사님 연락처</label>
+                <input type="text" id="invoiceInput" placeholder="예: 123-4567-890">
+            </div>
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label>발송 채널</label>
+        <div class="channel-tabs">
+            <button class="tab-btn active" onclick="setChannel('문자', this)">문자</button>
+            <button class="tab-btn" onclick="setChannel('카톡', this)">카톡</button>
+            <button class="tab-btn" onclick="setChannel('이메일', this)">이메일</button>
+        </div>
+    </div>
+
+    <button class="btn-generate" onclick="generateMessage()">⚡ 메시지 초안 생성</button>
+
+    <div class="form-group result-box">
+        <label>생성된 메시지</label>
+        <button class="btn-copy" onclick="copyToClipboard()">📋 복사하기</button>
+        <textarea id="resultArea" class="result-area" readonly placeholder="상단 조건을 입력한 후 생성 버튼을 눌러주세요."></textarea>
+    </div>
+</div>
+
+<div class="toast" id="toast">클립보드에 복사되었습니다!</div>
+
+<script>
+    let currentChannel = '문자';
+
+    // 100% 정적 황금 템플릿 데이터 사전 구축
+    const templateData = {
+        step1: {
+            '문자': "[설치 안내]
+안녕하세요, 담당자님. [현장명] 설치 일정이 [일정]로 확정되어 안내해 드립니다. 당일 원활한 진행을 위해 현장 비워주시거나 출입 방법을 미리 공유해 주시면 감사하겠습니다. 안전하게 시공 마치고 연락드리겠습니다.",
+            '카톡': "🚚 [현장명] 설치 일정 안내
+
+안녕하세요 담당자님! 믿고 맡겨주신 [현장명]의 설치 일정이 [일정]으로 최종 확정되었습니다. 😊
+
+당일 방문 전에 기사님이 미리 연락드리고 안전하게 설치 진행하겠습니다. 혹시 일정 변동이나 특이사항이 있으시면 편하게 말씀해 주세요!",
+            '이메일': "제목: [안내] [현장명] 설치 및 방문 일정 확정의 건
+
+안녕하십니까, 담당자님.
+귀사의 무궁한 발전을 기원합니다.
+
+신청해 주신 [현장명]의 설치 일정이 아래와 같이 확정되어 공유해 드립니다.
+
+■ 방문 일정: [일정]
+■ 안내 사항: 당일 현장 상황에 따라 소요 시간이 변동될 수 있습니다.
+
+관련하여 문의 사항이 있으시면 언제든 연락 주시기 바랍니다. 감사합니다."
+        },
+        step2: {
+            '문자': "[발주 완료]
+[현장명] 주문 건이 정상 접수되어 출고되었습니다.
+■ 택배사: [택배사]
+■ 송장번호: [송장번호]
+물품 수령 후 이상이 있으시면 바로 연락 부탁드립니다. 감사합니다.",
+            '카톡': "🎉 [현장명] 발주 확정 및 배송 안내
+
+담당자님, 기다리시던 제품이 발주 완료되어 오늘 정상 출고되었습니다!
+
+📦 배송 정보
+- 택배사: [택배사]
+- 송장번호: [송장번호]
+
+이동 중 파손 없이 안전하게 도착할 수 있도록 신경 썼습니다. 수령하신 뒤에 제품 꼭 확인해 주세요! 👍",
+            '이메일': "제목: [안내] [현장명] 자재 발주 확정 및 출고(송장) 공유의 건
+
+안녕하십니까, 담당자님.
+
+요청하신 [현장명]의 자재 발주가 정상 확정되어 금일 출고 처리가 완료되었습니다.
+배송 및 송장 정보를 아래와 같이 안내해 드립니다.
+
+■ 배송 편: [택배사]
+■ 송장번호/정보: [송장번호]
+
+현장에 자재가 도착하는 대로 수량 및 파손 여부를 체크해 주시기 바라며, 특이사항 발생 시 즉시 연락 주십시오. 감사합니다."
+        },
+        step3: {
+            '문자': "[견적 확인]
+안녕하세요, [현장명] 견적서 발송 후 검토에 도움을 드리고자 연락드렸습니다. 혹시 궁금하신 사항이나 추가 조율이 필요한 부분이 있으신지 편하게 말씀해 주시면 적극 안내해 드리겠습니다.",
+            '카톡': "🤔 [현장명] 견적서 검토 확인 차 연락드렸습니다!
+
+안녕하세요 담당자님, 며칠 전 보내드린 [현장명] 견적서는 잘 받아보셨을까요?
+
+현장 도면과 조건에 맞춰 최적의 단가로 제안해 드렸으나, 예산이나 자재 스펙 관련해 고민되시는 부분이 있을 것 같습니다. 궁금하신 점은 언제든 편하게 톡 남겨주세요!",
+            '이메일': "제목: [리마인드] [현장명] 견적서 수신 및 검토 확인 요청의 건
+
+안녕하십니까, 담당자님.
+
+지난 [일정]에 송부해 드린 [현장명] 관련 견적서에 대하여 검토에 진척이 있으신지 여쭙고자 연락드렸습니다.
+
+제안해 드린 내용 중 추가 설명이 필요하시거나, 현장 예산 맞춤을 위해 스펙 조정이 필요한 부분이 있으시다면 언제든 편하게 회신 부탁드립니다.
+
+긍정적인 검토를 부탁드립니다. 감사합니다."
+        },
+        step4: {
+            '문자': "[안내] [현장명] 건으로 연락드렸습니다. 타사 견적과 비교 검토 중이실 텐데, 저희는 확실한 자재 스펙과 사후관리를 보장합니다. 단가 부분도 조율 가능성이 열려있으니, 결정 전 꼭 한 번 연락 주시면 최선을 다해 맞춰드리겠습니다.",
+            '카톡': "👍 [현장명] 합리적인 선택을 위한 제안
+
+담당자님, 타사 견적과 꼼꼼히 비교 중이실 텐데요! 저희 제품은 가격 대비 성능과 사후관리 면에서 확실한 우위에 있다고 자부합니다.
+
+혹시 타사 대비 단가 조율이 필요한 부분이 있다면 말씀해 주세요. 최대한 만족하실 수 있는 선에서 '네고 협의'도 가능하니, 최종 결정 전에 꼭 한 번 편하게 이야기 나눠요! 😉",
+            'is_dynamic_time': true // 이메일에서 일정인풋을 발송일로 재활용하기 위함
+        },
+        step5: {
+            '문자': "[공제회 혜택 안내]
+[현장명]은 공제회 지원 안내 대상 현장입니다. 타사 견적 대비 공제회 혜택을 적용하면 단가를 대폭 절감할 수 있습니다. 추가 네고도 가능하니 타사와 최종 비교 전 문의 주시면 친절히 안내해 드리겠습니다.",
+            '카톡': "💡 [현장명] 공제회 혜택 및 비용 절감 리마인드
+
+안녕하세요 담당자님! 지난번 안내해 드린 [현장명]의 경우, '공제회 지원 대상'에 해당되어 타사 대비 비용을 훨씬 크게 아끼실 수 있는 메리트가 있습니다.
+
+보내드린 견적을 바탕으로 추가적인 네고나 단가 맞춤도 가능하니까요, 타사로 확정하시기 전에 저희 쪽 혜택을 꼭 비교해 보시고 현명한 선택 하셨으면 좋겠습니다! 문의사항은 언제든 톡 주세요. 📞"
+        }
+    };
+
+    // 4번 단게 이메일은 내용이 길어 가독성을 위해 하단 분리 정의
+    templateData.step4['이메일'] = "제목: [협의제안] [현장명] 견적 비교 및 단가 조율 제안의 건
+
+안녕하십니까, 담당자님.
+
+현재 [현장명] 건으로 타사 견적과 함께 다각도로 비교 검토 중이실 것으로 사료됩니다.
+
+저희 제품/서비스는 엄격한 품질 기준과 확실한 사후관리(A/S) 체계를 갖추고 있어 장기적인 유지관리 비용 측면에서 우수한 경쟁력을 가지고 있습니다.
+
+만약 타사 대비 최종 계약 단가 조율이나 예산 한도 맞춤이 필요하신 상황이라면, 내부 승인을 통해 유연하게 네고 협의를 진행할 방침이오니 결정하시기 전 꼭 피드백을 부탁드립니다.
+
+최상의 조건으로 파트너가 될 수 있기를 기대합니다. 감사합니다.";
+    templateData.step5['이메일'] = "제목: [안내] [현장명] 공제회 지원 혜택 적용 및 예산 절감 안내
+
+안녕하십니까, 담당자님.
+
+보내드린 [현장명] 견적서와 관련하여 한 가지 중요한 혜택을 환기해 드리고자 합니다.
+
+해당 현장은 '공제회 지원 안내 대상'에 부합하여, 일반 자재 발주 대비 상당한 수준의 국비 지원 혹은 비용 감면 혜택을 적용받으실 수 있습니다.
+
+타사 견적과 최종 비교를 하실 때 이 공제회 환급/지원 메리트를 차감하여 계산하시면 저희가 훨씬 압도적인 예산 절감 효과를 드림을 확인하실 수 있습니다. 상세한 서류 절차 및 네고 단가 조율은 편하게 문의해 주시면 정성껏 안내하겠습니다.
+
+감사합니다.";
+
+    function setChannel(channel, element) {
+        currentChannel = channel;
+        const buttons = document.querySelectorAll('.tab-btn');
+        buttons.forEach(btn => btn.classList.remove('active'));
+        element.classList.add('active');
+        generateMessage(); // 채널 바꿀 때도 즉시 자동 갱신
+    }
+
+    function toggleFields() {
+        const step = document.getElementById('stepSelect').value;
+        const fieldDate = document.getElementById('field-date');
+        const fieldShipping = document.getElementById('field-shipping');
+        const dateLabel = fieldDate.querySelector('label');
+
+        if (step === 'step1') {
+            fieldDate.style.display = 'block';
+            fieldShipping.style.display = 'none';
+            dateLabel.innerText = "방문/설치 일정";
+        } else if (step === 'step2') {
+            fieldDate.style.display = 'none';
+            fieldShipping.style.display = 'block';
+        } else if (step === 'step3') {
+            fieldDate.style.display = 'block';
+            fieldShipping.style.display = 'none';
+            dateLabel.innerText = "견적서 발송일 (또는 요일)";
+        } else {
+            // 4번, 5번 단계는 변수 입력창 필요 없음 (현장명만 치환)
+            fieldDate.style.display = 'none';
+            fieldShipping.style.display = 'none';
+        }
+        generateMessage();
+    }
+
+    function generateMessage() {
+        const site = document.getElementById('siteName').value || "[현장명]";
+        const step = document.getElementById('stepSelect').value;
+        const dateVal = document.getElementById('dateInput').value || "[일정]";
+        const courierVal = document.getElementById('courierInput').value || "[택배사]";
+        const invoiceVal = document.getElementById('invoiceInput').value || "[송장번호]";
+
+        let template = templateData[step][currentChannel];
+
+        // 일괄 치환 처리
+        let result = template
+            .replace(/\[현장명\]/g, site)
+            .replace(/\[일정\]/g, dateVal)
+            .replace(/\[택배사\]/g, courierVal)
+            .replace(/\[송장번호\]/g, invoiceVal);
+
+        document.getElementById('resultArea').value = result;
+    }
+
+    function copyToClipboard() {
+        const resultArea = document.getElementById('resultArea');
+        if(!resultArea.value) return;
+        
+        resultArea.select();
+        document.execCommand('copy');
+        
+        const toast = document.getElementById('toast');
+        toast.style.display = 'block';
+        setTimeout(() => {
+            toast.style.display = 'none';
+        }, 1500);
+    }
+
+    // 초기 실행
+    toggleFields();
+</script>
+</body>
+</html>
