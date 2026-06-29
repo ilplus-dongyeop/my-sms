@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>(주)휴먼인텍 문자 생성기</title>
+    <style>
+        :root {
+            --primary-color: #008744;
+            --primary-light: #f0fdf4;
+            --border-color: #cbd5e1;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --warning-color: #e11d48;
+        }
+        * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body { background-color: #f8fafc; margin: 0; padding: 20px; color: var(--text-main); display: flex; justify-content: center; }
+        .main-wrapper { max-width: 1100px; width: 100%; display: flex; flex-direction: column; gap: 15px; }
+        
+        .nav-tabs { display: flex; justify-content: space-between; border-bottom: 2px solid var(--border-color); padding-bottom: 4px; }
+        .nav-left { display: flex; gap: 10px; }
+        .nav-btn { padding: 8px 16px; background: none; border: none; font-size: 15px; font-weight: 700; color: var(--text-muted); cursor: pointer; }
+        .nav-btn.active { color: var(--primary-color); border-bottom: 3px solid var(--primary-color); }
+
+        .channel-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 5px; }
+        .channel-card { background: #fff; border: 1px solid var(--border-color); border-radius: 12px; padding: 14px; text-align: center; cursor: pointer; transition: all 0.2s; }
+        .channel-card.active { border: 2px solid var(--primary-color); background-color: var(--primary-light); }
+        .channel-card h3 { margin: 0 0 4px 0; font-size: 15px; font-weight: 700; }
+        .channel-card.active h3 { color: var(--primary-color); }
+        .channel-card p { margin: 0; font-size: 12px; color: var(--text-muted); }
+
+        .dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
+        @media (max-width: 768px) { .dashboard-grid { grid-template-columns: 1fr; } }
+
+        .section-card { background: #fff; border: 1px solid var(--border-color); border-radius: 12px; padding: 18px; margin-bottom: 15px; }
+        .section-title { font-size: 13px; font-weight: 700; color: var(--text-muted); margin-top: 0; margin-bottom: 12px; }
+
+        input[type="text"], select, textarea { width: 100%; padding: 11px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px; outline: none; }
+        input[type="text"]:focus, select:focus, textarea:focus { border-color: var(--primary-color); }
+
+        .segment-control { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px; }
+        .segment-btn { background: #fff; border: 1px solid var(--border-color); border-radius: 8px; padding: 9px; font-size: 14px; cursor: pointer; font-weight: 600; color: var(--text-muted); }
+        .segment-btn.active { border: 1px solid var(--primary-color); color: var(--primary-color); background: var(--primary-light); }
+
+        .situation-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .situation-card { background: #fff; border: 1px solid var(--border-color); border-radius: 8px; padding: 11px; cursor: pointer; transition: all 0.15s; }
+        .situation-card.active { border: 2px solid var(--primary-color); background: var(--primary-light); }
+        .situation-card h4 { margin: 0 0 2px 0; font-size: 13px; font-weight: 700; }
+        .situation-card.active h4 { color: var(--primary-color); }
+        .situation-card p { margin: 0; font-size: 11px; color: var(--text-muted); }
+
+        .extra-info-box { border: 1px solid var(--primary-color); background-color: var(--primary-light); border-radius: 12px; padding: 14px; margin-bottom: 15px; }
+        .extra-info-box label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 5px; color: var(--primary-color); }
+
+        .btn-submit { width: 100%; padding: 13px; background-color: var(--primary-color); color: #fff; font-size: 15px; font-weight: 700; border: none; border-radius: 8px; cursor: pointer; }
+        .btn-submit:hover { background-color: #006e36; }
+
+        .result-container { display: flex; flex-direction: column; min-height: 560px; }
+        .result-area-wrapper { position: relative; flex-grow: 1; display: flex; flex-direction: column; }
+        textarea.result-display { width: 100%; flex-grow: 1; min-height: 420px; border: 1px solid var(--border-color); border-radius: 12px; padding: 16px; font-size: 14px; line-height: 1.6; resize: none; }
+        .btn-copy { position: absolute; top: 10px; right: 10px; padding: 6px 12px; background-color: #475569; color: white; border: none; border-radius: 6px; font-size: 12px; cursor: pointer; }
+        
+        .byte-badge { margin-top: 8px; font-size: 12px; font-weight: 600; text-align: right; color: var(--text-muted); }
+        .byte-badge.warning { color: var(--warning-color); }
+        .notice-banner { margin-top: 10px; background-color: var(--primary-light); border: 1px solid var(--primary-color); border-radius: 8px; padding: 10px; font-size: 12px; color: var(--primary-color); font-weight: 600; }
+        .notice-banner.danger { background-color: #fff1f2; border-color: var(--warning-color); color: var(--warning-color); }
+
+        .toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: #1e293b; color: white; padding: 10px 20px; border-radius: 20px; font-size: 13px; display: none; z-index: 999; }
+        
+        #settingsPage { display: none; background: white; padding: 20px; border-radius: 12px; border: 1px solid var(--border-color); }
+    </style>
+</head>
+<body>
+
+<div class="main-wrapper">
+    <div class="nav-tabs">
+        <div class="nav-left">
+            <button id="navGen" class="nav-btn active" onclick="switchPage('generator')">📱 메시지 생성기</button>
+            <button id="navSet" class="nav-btn" onclick="switchPage('settings')">⚙️ 템플릿 설정</button>
+        </div>
+    </div>
+
+    <!-- 생성기 페이지 -->
+    <div id="generatorPage">
+        <div class="channel-container">
+            <div class="channel-card active" id="tab-SMS" onclick="selectChannel('문자', this)">
+                <h3>📱 문자 SMS</h3><p>90자 이내 권장</p>
+            </div>
+            <div class="channel-card" id="tab-KKO" onclick="selectChannel('카톡', this)">
+                <h3>💬 카카오톡</h3><p>250자 이내 권장</p>
+            </div>
+            <div class="channel-card" id="tab-EML" onclick="selectChannel('이메일', this)">
+                <h3>✉️ 이메일</h3><p>서면 포함 형식</p>
+            </div>
+        </div>
+
+        <div class="dashboard-grid">
+            <div class="left-panel">
+                <div class="section-card">
+                    <h3 class="section-title">기본 정보</h3>
+                    <div class="form-group" style="margin-bottom: 10px;">
+                        <input type="text" id="clientName" placeholder="상대방 담당자 성함/직함 (예: 홍길동 소장)" oninput="saveInputs()">
+                    </div>
+                    <div class="form-group">
+                        <input type="text" id="siteName" placeholder="현장명 (예: ○○아파트 신축공사)" oninput="saveInputs()">
+                    </div>
+                    <div class="segment-control">
+                        <button class="segment-btn active" onclick="selectSegment('렌탈', this)">렌탈</button>
+                        <button class="segment-btn" onclick="selectSegment('구매', this)">구매</button>
+                        <button class="segment-btn" onclick="selectSegment('미정', this)">미정</button>
+                    </div>
+                </div>
+
+                <div class="section-card">
+                    <h3 class="section-title">상황 선택</h3>
+                    <div class="situation-grid" id="situationGrid"></div>
+                </div>
+
+                <div class="extra-info-box" id="extraInfoBox"></div>
+                <button class="btn-submit" onclick="generateMessage()">⚡ 메시지 초안 생성</button>
+            </div>
+
+            <div class="right-panel">
+                <div class="section-card result-container">
+                    <h3 class="section-title">생성된 메시지</h3>
+                    <div class="result-area-wrapper">
+                        <button class="btn-copy" onclick="copyText()">📋 복사하기</button>
+                        <textarea id="resultArea" class="result-display" readonly placeholder="좌측 정보를 채우고 생성 버튼을 누르세요."></textarea>
+                    </div>
+                    <div class="byte-badge" id="byteCounter">0 / 90 Byte (SMS)</div>
+                    <div class="notice-banner" id="infoBanner">ⓘ 90바이트가 넘으면 장문(LMS)으로 전환되어 발송 비용이 달라질 수 있습니다.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 템플릿 설정 페이지 -->
+    <div id="settingsPage">
+        <h3 style="margin:0 0 5px 0; font-size:16px;">⚙️ 양식 문구 편집 커스터마이징</h3>
+        <p style="margin:0 0 15px 0; font-size:12px; color:var(--text-muted);">코드 치환 단어: [담당자], [현장명], [유형], [추가1], [추가2]</p>
+        <div class="form-group" style="margin-bottom:12px;">
+            <label style="font-weight:700; font-size:13px;">편집할 상황 선택</label>
+            <select id="editStepSelect" onchange="loadTemplateToEdit()" style="margin-top:4px;"></select>
+        </div>
+        <div class="form-group" style="margin-bottom:12px;">
+            <label style="color:var(--primary-color); font-weight:700; font-size:13px;">📱 문자 양식</label>
+            <textarea id="editSms" style="height:120px; font-family:inherit; margin-top:4px; line-height:1.5;"></textarea>
+        </div>
+        <div class="form-group" style="margin-bottom:15px;">
+            <label style="color:#2563eb; font-weight:700; font-size:13px;">💬 카카오톡 양식</label>
+            <textarea id="editKakao" style="height:140px; font-family:inherit; margin-top:4px; line-height:1.5;"></textarea>
+        </div>
+        <button class="btn-submit" onclick="saveTemplates()" style="background-color:#1e293b;">💾 편집 내용 브라우저에 저장하기</button>
+    </div>
+</div>
+
+<div class="toast" id="toast">복사 완료!</div>
+
+<script>
+    let selectedChannel = '문자';
+    let selectedType = '렌탈';
+    let selectedStep = 'step1';
+
+    const situations = [
+        { id: 'step1', title: '1. 기존고객 견적발송', desc: '정중한 수신 확인 요청' },
+        { id: 'step2', title: '2. 신규고객 견적발송', desc: '퇴직공제 기반 기선제압' },
+        { id: 'step3', title: '3. 견적 D+3 팔로업', desc: '수령 및 누락 교차 체크' },
+        { id: 'step4', title: '4. 견적 D+7 밀당제안', desc: '본사 특별 승인 네고 유도' },
+        { id: 'step5', title: '5. 설치 일정 안내', desc: '담당 현장 소장님 지정' },
+        { id: 'step6', title: '6. 출고 확정/송장 공유', desc: '자재 분실방지 리마인드' }
+    ];
+
+    const supervisors = [
+        { name: "김경조 소장", phone: "010-8850-7705" },
+        { name: "김일석 소장", phone: "010-4539-9945" },
+        { name: "김상곤 소장", phone: "010-3400-0778" },
+        { name: "이재건 소장", phone: "010-9505-6682" }
+    ];
+
+    // [제목:] 문구 제거, 이모지 가미, 모바일용 최적화 가독성 줄바꿈 완벽 세팅
+    const defaultTemplates = {
+        step1: {
+            '문자': "[견적 안내] 📄\n\n안녕하세요, [담당자]님.\n(주)휴먼인텍 김동엽 과장입니다.\n\n요청하신 [현장명] 견적서를 조금 전 메일로 발송해 드렸습니다.\n\n편하게 검토해 보시고 추가로 궁금하신 사항이 있으시면 언제든지 연락 주시기 바랍니다.\n감사합니다.\n\n📞 문의: 010-6410-0497",
+            '카톡': "📄 **[현장명] 견적서 발송 안내**\n\n안녕하세요, [담당자]님!\n(주)휴먼인텍 김동엽 과장입니다.\n\n요청하신 [현장명] 견적서를 조금 전 메일로 발송해 드렸습니다. 😊\n\n바쁘시겠지만 확인 부탁드리며, 보시면서 궁금하신 점이 있으시면 언제든 편하게 연락해 주십시오.\n감사합니다.\n\n━━━━\n☎️ 문의: 010-6410-0497 (김동엽 과장)"
+        },
+        step2: {
+            '문자': "[견적 안내] 💡\n\n안녕하세요, [담당자]님.\n(주)휴먼인텍 김동엽 과장입니다.\n\n[현장명] 퇴직공제가입 완료에 따른 설치안내대상 정보를 확인하고, 공제회 기준에 맞춘 최적의 견적서를 담당자님 메일로 발송했습니다.\n\n👑 공제회 운영평가 1위 (주)휴먼인텍\n🏭 전국 54,000개 이상 현장 도입\n📱 59,000대 이상 단말기 설치 운영\n\n가장 확실한 단가와 완벽한 사후관리를 보장하오니 메일 확인 부탁드립니다.\n\n📞 문의: 010-6410-0497",
+            '카톡': "💡 **[현장명] 퇴직공제가입 관련 최적 견적 안내**\n\n안녕하세요, [담당자]님!\n(주)휴먼인텍 김동엽 과장입니다.\n\n[현장명]의 건설근로자 퇴직공제가입 완료 정보를 확인하고, 공제회 기준에 맞춘 최적의 단말기 도입 견적서를 담당자님의 메일 주소로 발송해 드렸습니다. 😊\n\n🏆 **수많은 현장이 (주)휴먼인텍을 선택한 이유**\n- **공제회 운영평가 1위** 검증된 안정성\n- 전국 **54,000개 이상 현장** 도입 완료\n- 기술력이 입증된 **59,000대 이상 단말기** 설치·운영\n\n단가와 행정 지원, 사후관리까지 가장 만족하실 것을 약속드립니다. 메일함을 확인해 보시고, 궁금하신 점은 본 카톡으로 편하게 말씀해 주셔도 친절히 안내해 드리겠습니다.\n\n━━━━\n☎️ 문의: 010-6410-0497\n✉️ 메일: dongy99@humanintech.co.kr\n👤 담당: (주)휴먼인텍 김동엽 과장"
+        },
+        step3: {
+            '문자': "[수신 확인] 🤔\n\n안녕하세요, [담당자]님.\n(주)휴먼인텍 김동엽 과장입니다.\n\n며칠 전 보내드린 [현장명] 전자카드 단말기 견적서가 스팸함 등으로 누락되지 않고 잘 도착했는지 확인차 연락드렸습니다.\n\n향후 착공 일정에 차질이 없으시도록 선제적으로 준비해 드리고자 하오니, 메일 확인 후 편하게 연락 주시거나 본 문자에 답장 주시면 감사하겠습니다.\n\n📞 문의: 010-6410-0497",
+            '카톡': "🤔 **[현장명] 단말기 견적 수령 확인 안내**\n\n안녕하세요, [담당자]님!\n(주)휴먼인텍 김동엽 과장입니다.\n\n현장 업무로 워낙 바쁘실 텐데, 며칠 전 메일로 보내드린 [현장명] 전자카드 단말기 견적서가 누락 없이 잘 도착했는지 확인차 메시지 남깁니다. 😊\n\n향후 착공 일정에 맞춰 차질 없이 단말기를 설치·운영하시려면 미리 체크해 두시는 것이 안전하여 리마인드 차 연락드렸습니다.\n\n혹시 지금 당장 상세한 검토가 어려우시다면, **본 카톡에 [확인중] 또는 [나중에 연락]이라고 짧게 회신만 주셔도** 제가 일정 맞춰 다시 연락드리겠습니다. 감사합니다!\n\n━━━━\n☎️ 문의: 010-6410-0497 (김동엽 과장)"
+        },
+        step4: {
+            '문자': "[최종 비교] 👍\n\n안녕하세요, 담당자님.\n(주)휴먼인텍 김동엽 과장입니다.\n\n[현장명] 단말기 도입을 두고 타사 견적과 최종 비교 중이실 텐데, 저가형 기기의 잦은 오작동이나 사후관리 공백으로 인한 현장 리스크를 방지하시려면 검증된 1위 업체를 선택하시는 것이 가장 안전합니다.\n\n타사 조건 대비 예산 조율이 필요하시다면 **최종 결재 전 연락 주십시오. 본사 특별 승인을 통해 담당자님의 예산 가이드라인에 최대한 맞춰드리겠습니다.**\n\n📞 문의: 010-6410-0497",
+            '카톡': "👍 **[현장명] 단말기 도입 최종 비교 제안**\n\n안녕하세요, [담당자]님!\n(주)휴먼인텍 김동엽 과장입니다.\n\n현재 [현장명]의 전자카드 단말기 선정을 두고 여러 업체의 조건을 최종 비교 분석 중이실 것으로 사료됩니다. 😊\n\n많은 현장 담당자분들이 우려하시는 부분이 '초기 비용을 조금 아끼려다 기기 오작동이나 공제회 행정 지원 미비로 현장 관리에 차질이 생기는 것'입니다. 저희 (주)휴먼인텍은 **공제회 운영평가 1위(전국 54,000개 현장 도입)** 업체로서, 도입 후 어떠한 리스크도 없음을 보장합니다.\n\n혹시 타사 대비 내부 예산 한도가 고민이시라면, **최종 결재를 올리시기 전에 편하게 타사 조건을 말씀해 주십시오.** 내부 특별 조율을 거쳐 담당자님이 만족하실 수 있는 최상의 조건으로 맞추어 보고서에 올리실 수 있도록 적극 돕겠습니다. 편하게 톡 남겨주세요!\n\n━━━━\n☎️ 문의: 010-6410-0497 (김동엽 과장)"
+        },
+        step5: {
+            '문자': "[설치 안내] 🚚\n\n안녕하세요, 담당자님.\n(주)휴먼인텍 김동엽 과장입니다.\n\n[현장명] 전자카드 단말기 설치 일정이 [추가1]로 최종 확정되었습니다.\n\n당일 원활한 시공과 현장 공정 간섭을 방지하기 위해 배정된 소장님이 방문 전 미리 연락드리고 시간을 세부 조율하겠습니다.\n\n■ 시공 담당: [추가2]\n\n당일 현장 출입 및 작업 공간 협조를 부탁드립니다. 감사합니다.\n\n📞 문의: 010-6410-0497",
+            '카톡': "🚚 **[현장명] 전자카드 단말기 설치 일정 안내**\n\n안녕하세요, [담당자]님!\n(주)휴먼인텍 김동엽 과장입니다.\n\n믿고 맡겨주신 [현장명]의 단말기 설치 일정이 아래와 같이 최종 확정되어 안내해 드립니다. 😊\n\n■ 방문 일시: [추가1]\n■ 시공 담당: [추가2]\n\n타 공정과 겹치지 않게 당일 담당 소장님이 방문 전 미리 연락을 드려 시간을 세부 조율하고, 깔끔하게 설치를 완료하겠습니다. 당일 현장 출입 방법이나 특이사항이 있으시면 소장님 혹은 제게 편하게 말씀해 주십시오. 감사합니다.\n\n━━━━\n☎️ 문의: 010-6410-0497 (김동엽 과장)"
+        },
+        step6: {
+            '문자': "[출고 완료] 📦\n\n안녕하세요, 담당자님.\n(주)휴먼인텍 김동엽 과장입니다.\n\n[현장명] 전자카드 단말기 자재가 금일 정상 출고되었습니다.\n\n본 자재는 현장 개설에 필수적이므로 수령 즉시 분실되지 않게 공무/소장님실에서 안전하게 보관해 주시기 바랍니다.\n\n■ 배송 수단: [추가1]\n■ 송장 번호: [추가2]\n\n도착 후 파손 여부를 체크해 주시고 특이사항 발생 시 즉시 연락 주십시오.\n\n📞 문의: 010-6410-0497",
+            '카톡': "📦 **[현장명] 단말기 자재 출고 및 송장 안내**\n\n안녕하세요, [담당자]님!\n(주)휴먼인텍 김동엽 과장입니다.\n\n[현장명]에 도입될 전자카드 단말기 자재가 오늘 안전하게 패키징되어 정상 출고되었습니다! 🎉\n\n■ 배송 정보: [추가1]\n■ 송장/연락처: [추가2]\n\n대형 현장의 경우 자재가 타 물품과 섞여 분실되는 경우가 많습니다. 박스 겉면에 '전자카드 단말기 자재'로 명시되어 있으니, 수령하시는 대로 공무실이나 소장실에서 안전하게 확보 부탁드립니다. 도착 시 이상이 있다면 언제든 톡 남겨주세요!\n\n━━━━\n☎️ 문의: 010-6410-0497 (김동엽 과장)"
+        }
+    };
+
+    let currentTemplates = JSON.parse(localStorage.getItem('ht_final_sms_templates')) || defaultTemplates;
+
+    function switchPage(page) {
+        if(page === 'generator') {
+            document.getElementById('generatorPage').style.display = 'block';
+            document.getElementById('settingsPage').style.display = 'none';
+            document.getElementById('navGen').classList.add('active');
+            document.getElementById('navSet').classList.remove('active');
+            renderSituationGrid();
+        } else {
+            document.getElementById('generatorPage').style.display = 'none';
+            document.getElementById('settingsPage').style.display = 'block';
+            document.getElementById('navGen').classList.remove('active');
+            document.getElementById('navSet').classList.add('active');
+            loadTemplateToEdit();
+        }
+    }
+
+    function renderSituationGrid() {
+        const gridEl = document.getElementById('situationGrid');
+        gridEl.innerHTML = "";
+        situations.forEach(sit => {
+            const card = document.createElement('div');
+            card.className = `situation-card ${sit.id === selectedStep ? 'active' : ''}`;
+            card.onclick = () => selectStep(sit.id, card);
+            card.innerHTML = `<h4>${sit.title}</h4><p>${sit.desc}</p>`;
+            gridEl.appendChild(card);
+        });
+    }
+
+    const selectEditEl = document.getElementById('editStepSelect');
+    situations.forEach(sit => {
+        const opt = document.createElement('option');
+        opt.value = sit.id;
+        opt.innerText = sit.title;
+        selectEditEl.appendChild(opt);
+    });
+
+    function selectChannel(channel, el) {
+        selectedChannel = channel;
+        document.querySelectorAll('.channel-card').forEach(c => c.classList.remove('active'));
+        el.classList.add('active');
+        
+        const banner = document.getElementById('infoBanner');
+        if ((selectedStep === 'step1' || selectedStep === 'step2' || selectedStep === 'step3' || selectedStep === 'step4') && channel === '이메일') {
+            banner.innerText = "⚠️ 안내: 이 상황은 불필요한 중복을 피해 문자/카톡 발송을 강력 권장합니다.";
+            banner.className = "notice-banner danger";
+        } else {
+            banner.innerText = channel === '문자' ? "ⓘ 90바이트가 넘으면 장문(LMS)으로 전환되어 발송 비용이 달라질 수 있습니다." : "ⓘ 채널별 가이드라인에 맞춘 문구입니다.";
+            banner.className = "notice-banner";
+        }
+        generateMessage();
+    }
+
+    function selectSegment(type, el) {
+        selectedType = type;
+        document.querySelectorAll('.segment-btn').forEach(b => b.classList.remove('active'));
+        el.classList.add('active');
+        generateMessage();
+    }
+
+    function selectStep(stepId, el) {
+        selectedStep = stepId;
+        document.querySelectorAll('.situation-card').forEach(c => c.classList.remove('active'));
+        el.classList.add('active');
+        updateExtraFields();
+        selectChannel(selectedChannel, document.querySelector('.channel-card.active'));
+    }
+
+    function updateExtraFields() {
+        const box = document.getElementById('extraInfoBox');
+        if (selectedStep === 'step5') {
+            box.style.display = 'block';
+            let optionsHtml = supervisors.map(s => `<option value="${s.name} (${s.phone})">${s.name} (${s.phone})</option>`).join('');
+            box.innerHTML = `
+                <div class="form-group">
+                    <label>방문 날짜 및 시간</label>
+                    <input type="text" id="extra1" placeholder="예) 7/15(월) 오전 10시" oninput="generateMessage()">
+                </div>
+                <div class="form-group" style="margin-bottom:0;">
+                    <label>현장 담당 소장님 선택</label>
+                    <select id="extra2" onchange="generateMessage()">${optionsHtml}</select>
+                </div>`;
+        } else if (selectedStep === 'step6') {
+            box.style.display = 'block';
+            box.innerHTML = `
+                <div class="form-group">
+                    <label>배송 수단 (택배사/화물)</label>
+                    <input type="text" id="extra1" placeholder="예) 경동택배" oninput="generateMessage()">
+                </div>
+                <div class="form-group" style="margin-bottom:0;">
+                    <label>송장번호 또는 기사님 연락처</label>
+                    <input type="text" id="extra2" placeholder="예) 302-1234-5678" oninput="generateMessage()">
+                </div>`;
+        } else {
+            box.style.display = 'none';
+        }
+        generateMessage();
+    }
+
+    function generateMessage() {
+        const cName = document.getElementById('clientName').value || "[담당자 성함]";
+        const sName = document.getElementById('siteName').value || "[현장명]";
+        const ex1El = document.getElementById('extra1');
+        const ex2El = document.getElementById('extra2');
+        const ex1 = ex1El ? ex1El.value : "";
+        const ex2 = ex2El ? ex2El.value : "";
+
+        let baseTemplate = "";
+        if(selectedChannel === '이메일') {
+            baseTemplate = `업무 협조 안내\n\n안녕하십니까, ${cName}님.\n(주)휴먼인텍 김동엽 과장입니다.\n\n문의하신 내용과 관련하여 안내 말씀 전해드립니다.\n\n■ 계약 형태: [유형]\n■ 주요 정보: [추가1] / [추가2]\n\n상세 내용은 유선 혹은 메시지로 안내해 드린 바와 같사오니 확인 부탁드립니다. 감사합니다.`;
+        } else {
+            baseTemplate = currentTemplates[selectedStep][selectedChannel];
+        }
+
+        let finalText = baseTemplate
+            .replace(/\[담당자\]/g, cName)
+            .replace(/\[현장명\]/g, sName)
+            .replace(/\[유형\]/g, selectedType)
+            .replace(/\[추가1\]/g, ex1 || "[값1 입력필요]")
+            .replace(/\[추가2\]/g, ex2 || "[값2 입력필요]");
+
+        document.getElementById('resultArea').value = finalText;
+        calculateBytes(finalText);
+    }
+
+    function calculateBytes(str) {
+        let byteCount = 0;
+        for (let i = 0; i < str.length; i++) {
+            let charCode = str.charCodeAt(i);
+            if (charCode > 127) { byteCount += 2; } else { byteCount += 1; }
+        }
+        const counterEl = document.getElementById('byteCounter');
+        if (selectedChannel === '문자') {
+            counterEl.innerText = `${byteCount} / 90 Byte ${byteCount > 90 ? '(LMS 장문 전환)' : '(SMS 단문)'}`;
+            if(byteCount > 90) counterEl.className = "byte-badge warning";
+            else counterEl.className = "byte-badge";
+        } else {
+            counterEl.innerText = `${str.length}자 입력됨 (${selectedChannel})`;
+            counterEl.className = "byte-badge";
+        }
+    }
+
+    function saveInputs() {
+        localStorage.setItem('ht_saved_cname', document.getElementById('clientName').value);
+        localStorage.setItem('ht_saved_sname', document.getElementById('siteName').value);
+        generateMessage();
+    }
+
+    function loadSavedInputs() {
+        if(localStorage.getItem('ht_saved_cname')) document.getElementById('clientName').value = localStorage.getItem('ht_saved_cname');
+        if(localStorage.getItem('ht_saved_sname')) document.getElementById('siteName').value = localStorage.getItem('ht_saved_sname');
+    }
+
+    function loadTemplateToEdit() {
+        const step = document.getElementById('editStepSelect').value;
+        document.getElementById('editSms').value = currentTemplates[step]['문자'];
+        document.getElementById('editKakao').value = currentTemplates[step]['카톡'];
+    }
+
+    function saveTemplates() {
+        const step = document.getElementById('editStepSelect').value;
+        currentTemplates[step]['문자'] = document.getElementById('editSms').value;
+        currentTemplates[step]['카톡'] = document.getElementById('editKakao').value;
+        
+        localStorage.setItem('ht_final_sms_templates', JSON.stringify(currentTemplates));
+        
+        const toast = document.getElementById('toast');
+        toast.innerText = "💾 변경 양식이 안전하게 브라우저에 백업되었습니다!";
+        toast.style.display = 'block';
+        setTimeout(() => toast.style.display = 'none', 1800);
+    }
+
+    function copyText() {
+        const area = document.getElementById('resultArea');
+        if(!area.value) return;
+        area.select();
+        document.execCommand('copy');
+        const toast = document.getElementById('toast');
+        toast.innerText = "📋 클립보드에 깔끔하게 복사되었습니다!";
+        toast.style.display = 'block';
+        setTimeout(() => toast.style.display = 'none', 1500);
+    }
+
+    renderSituationGrid();
+    loadSavedInputs();
+    updateExtraFields();
+</script>
+</body>
+</html>
